@@ -6,15 +6,24 @@ import numpy as np
 import csv
 
 
-def make_dataset(filename) -> tf.data.Dataset:
+def load_tiffseq(filename) -> np.ndarray:
     with TiffFile(filename) as tif:
-        tmp_numpy = tif.asarray()
+        return tif.asarray()
 
-    tmp_tensor = tf.convert_to_tensor(tmp_numpy, dtype=tf.float32)
+
+def min_max(tiffnumpy) -> np.ndarray:
+    minvalue = tiffnumpy.min(axis=0)
+    maxvalue = tiffnumpy.max(axis=0)
+
+    return np.array(
+        [(x - minvalue) / (maxvalue - minvalue) for x in tiffnumpy]
+    )
+
+
+def make_dataset(tiffnumpy) -> tf.data.Dataset:
+    tmp_tensor = tf.convert_to_tensor(tiffnumpy, dtype=tf.float32)
 
     dataset = tf.data.Dataset.from_tensor_slices(tmp_tensor)
-
-    del tmp_numpy
     del tmp_tensor
     gc.collect()
 
@@ -26,4 +35,4 @@ def load_runrest(filename) -> np.ndarray:
         reader = csv.reader(f)
         labels = [row for row in reader]
 
-    return np.array(labels)
+    return np.array(labels, dtype=np.uint8)
